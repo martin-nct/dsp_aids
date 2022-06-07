@@ -1,8 +1,4 @@
-#!/usr/bin/env python
 # coding: utf-8
-
-# In[ ]:
-
 
 # Funciones útiles
 
@@ -290,3 +286,115 @@ def polosyceros(b,a, lim=1.1):
     plt.xlim([-lim,lim])
     plt.ylim([-lim,lim])
     plt.show()
+    
+def suavizado(f, amp, octava):
+    """
+    Realiza un filtrado por bandas.
+
+    Parameters
+    ----------
+    f : numpy array
+        eje de frecuencias
+    amp : numpy array
+        amplitudes en dB
+    octava : int
+        fracción de octava en la cual se realiza el filtrado. p.ej. octava = 3
+        resulta en un filtrado de 1/3 de octava. Si es 0, no hay filtrado
+
+    Returns
+    -------
+    ampsmooth : numpy array
+        señal suavizada
+
+    """
+    ampsmooth = amp
+    if octava != 0:     # Posibilidad de no filtrar con octava = 0
+        for n in range(f.size):
+            finf = f[n] * 2 ** (-1/(2*octava))  # Calcula frecuencia superior
+            fsup = f[n] * 2 ** (1/(2*octava))  # Calcula frecuencia inferior
+            
+            if finf <= f[0]:
+                idxinf = 0
+            else:
+                idxinf = np.argmin(np.abs(f[:n+1] - finf))  # índice de la frecuencia inferior
+            
+            if fsup >= f[-1]:
+                idxsup = f.size - 1
+            else:
+                idxsup = np.argmin(np.abs(f[:] - fsup)) # índice de la frecuencia superior
+               
+            temp = 10 ** (0.1 * amp[idxinf:idxsup+1])   # Suma las presiones en la banda
+            ampsmooth[n] = 10 * np.log10(sum(temp) / len(amp[idxinf:idxsup+1])) # Promedio ponderado
+    return ampsmooth
+
+def plot_impz(b, a = 1, l=100):
+    """
+    Grafica la respuesta al impulso de una función de transferencia.
+
+    Parameters
+    ----------
+    b : numpy array o int
+        numerador de la función de transferencia en potencias decrecuentes 
+        negativas de z        
+    a : numpy array o int, optional
+        denominador de la función transferencia. The default is 1.
+    l : int, optional
+        cantidad de muestras del impulso. The default is 100.
+
+    Returns
+    -------
+    None.
+
+    """
+    if type(a)== int: #FIR
+        l = len(b)
+    else: # IIR
+        l = 500
+    impulse = np.repeat(0.,l)
+    impulse[0] =1.
+    x = np.arange(0,l)
+    response = sig.lfilter(b, a, impulse)
+    plt.plot(x, response); plt.grid()
+    plt.ylabel('Amplitud')
+    plt.xlabel('n (muestras)')
+    plt.title('Respuesta al Impulso')
+
+def plot_magyfas(w, H, l=15, a=5):
+    """
+    Grafica magnitud y fase de una fft.
+
+    Parameters
+    ----------
+    w : numpy array
+        eje de frecuencias.
+    H : numpy array
+        transformada de Fourier de una señal.
+    l : int, optional
+        ancho de la figura. The default is 15.
+    a : int, optional
+        alto de la figura. The default is 5.
+
+    Returns
+    -------
+    None.
+
+    """
+    H_mag = np.abs(H)
+    H_fase = np.angle(H)
+
+    plt.figure(1, figsize=(l,a))
+    plt.plot(w, H_mag, 'r')
+    plt.title('Magnitud de H(w)')
+    plt.xlabel('Frecuencia (rad/s)')
+    plt.ylabel('Magnitud')
+    plt.grid()
+    plt.show()
+
+    plt.figure(1, figsize=(l,a))
+    plt.plot(w, H_fase, 'g')
+    plt.title('Fase de H(w)')
+    plt.xlabel('Frecuencia (rad/s)')
+    plt.ylabel('Fase (rad/s)')
+    plt.grid()
+    plt.show()
+    
